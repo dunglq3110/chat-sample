@@ -2,17 +2,33 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using chat_sample.Dtos.Message;
+
 namespace chat_sample
 {
     public class ChatHub : Hub
     {
-        
-        public async Task SendMessageToAll(string user, string message, [FromServices] IMessageService messageService)
+        public override async Task OnConnectedAsync()
         {
-            var usermessage = await messageService.InsertMessage(new MessageSendRequest(user, message));
-            await Clients.All.SendAsync("ReceiveMessage", usermessage.Username, usermessage.Content);
+            await Clients.Others.SendAsync("UserConnected", Context.ConnectionId);
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            await Clients.Others.SendAsync("UserDisconnected", Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task SendMessageToAll(string user, string message)
+        {
+                        
+            await Clients.All.SendAsync("ReceiveMessage", user, message);
             
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+        }
     }
 }
